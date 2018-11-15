@@ -12,14 +12,14 @@ Useful for CLI for deployment, or multiple-blob storage projec that uses same in
 
 Install via .NET CLI
 ```powershell
-$ dotnet add package MimeDetective.InMemory
+$ dotnet add package Kirinnee.StorageBucketClient 
 ```
 
 or 
 
 Install via NuGet Package Manager
 ```powershell
-PM> Install-Package MimeDetective.InMemory
+PM> Install-Package Kirinnee.StorageBucketClient 
 ```
 
 
@@ -135,6 +135,10 @@ bool exist = await client.ExistBucket("bucket-name");
 ### Get Bucket
 Gets a bucket object, which can be used to perform CRUD operation on the objects it contains.
 The object will be IBucket
+```cs
+IBucket bucket = await client.GetBucket("bucket-name");
+```
+
 
 ## Blob CRUD with IBucket
 
