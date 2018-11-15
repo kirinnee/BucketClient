@@ -10,7 +10,7 @@ Supported services: AWS S3, Digital Ocean Spaces, Azure Blob Storage, GCP Cloud 
     <RepositoryUrl>https://github.com/kirinnee/BucketClient.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Bucket S3 Azure Blob Storage GCP Cloud Storage</PackageTags>
-    <NeutralLanguage>en</NeutralLanguage>
+    <NeutralLanguage>bin-NG</NeutralLanguage>
     <PackageProjectUrl>https://github.com/kirinnee/BucketClient.git</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
