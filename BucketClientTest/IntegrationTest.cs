@@ -26,7 +26,7 @@ namespace BucketClientTest
             string awsId = aws.id;
             string awsKey = aws.key;
             string awsRegion = aws.region;
-            awsClient = BucketClientFactory.CreateClient(ServiceProvider.AWS, new AWSCredential(awsId, awsKey, awsRegion));
+            awsClient = BucketClientFactory.CreateClient(CloudServiceProvider.AWS, new AWSCredential(awsId, awsKey, awsRegion));
             awsTargetBucket = aws.bucket;
 
             //DO
@@ -34,14 +34,14 @@ namespace BucketClientTest
             string doId = DO.id;
             string doKey = DO.key;
             string doRegion = DO.region;
-            doClient = BucketClientFactory.CreateClient(ServiceProvider.DigitalOcean, new DigitalOceanCredential(doId, doKey, doRegion));
+            doClient = BucketClientFactory.CreateClient(CloudServiceProvider.DigitalOcean, new DigitalOceanCredential(doId, doKey, doRegion));
             doTargetBucket = DO.bucket;
 
             //Azure
             dynamic azure = config.azure;
             string azureId = azure.id;
             string azurekey = azure.key;
-            azureClient = BucketClientFactory.CreateClient(ServiceProvider.Azure, new AzureCredential(azureId, azurekey));
+            azureClient = BucketClientFactory.CreateClient(CloudServiceProvider.Azure, new AzureCredential(azureId, azurekey));
             azureTargetBucket = azure.bucket;
 
 

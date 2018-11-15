@@ -130,7 +130,7 @@ namespace BucketClient.Azure
                 await blob.UploadFromByteArrayAsync(payload, 0, payload.Length);
                 blob.Properties.ContentType = payload.GetFileType().Mime;
                 await blob.SetPropertiesAsync();
-                return new OperationResult(true, "", HttpStatusCode.OK);
+                return new OperationResult(true, "", HttpStatusCode.OK).AppendUri(blob.Uri);
             }
             catch (Exception e)
             {

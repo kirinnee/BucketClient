@@ -19,6 +19,20 @@ namespace BucketClient
             }
         }
 
+        internal static byte[] ToByteUnsafe(this Stream input)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                input.CopyTo(ms);
+                return ms.ToArray();
+            }
+        }
+
+        internal static Stream ToStream(this byte[] bytes)
+        {
+            return new MemoryStream(bytes);
+        }
+
         internal static T DeserializeXMLString<T>(this string xmlData)
         {
             XmlDocument doc = new XmlDocument();
