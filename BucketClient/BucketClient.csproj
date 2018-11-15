@@ -2,6 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>MultiServiceStorageBucketClient</PackageId>
+    <Description>S3 Storage Bucket Client with same interface but different credential!
+Supported services: AWS S3, Digital Ocean Spaces, Azure Blob Storage, GCP Cloud Storage.</Description>
+    <Copyright>kirinnee97</Copyright>
+    <PackageLicenseUrl>MIT</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/kirinnee/BucketClient.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Bucket S3 Azure Blob Storage GCP Cloud Storage</PackageTags>
+    <NeutralLanguage>en</NeutralLanguage>
+    <PackageProjectUrl>https://github.com/kirinnee/BucketClient.git</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
