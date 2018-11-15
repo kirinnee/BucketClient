@@ -7,6 +7,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace BucketClient.DigitalOcean
 {
@@ -59,8 +61,9 @@ namespace BucketClient.DigitalOcean
         }
         public async Task<bool> ExistBucket(string key)
         {
-            var resp = await _client.SendRequest(HttpMethod.Head, $"https://{_region}.digitaloceanspaces.com/{key}");
-            return resp.Success;
+            //var resp = await _client.SendRequest(HttpMethod.Head, $"https://{_region}.digitaloceanspaces.com/{key}");
+            //return resp.Success;
+            return await IsBucketPublic(key);
         }
         public async Task<IBucket> GetBucket(string key)
         {
@@ -87,23 +90,8 @@ namespace BucketClient.DigitalOcean
         {
             bool exist = await ExistBlob(key);
             if (!exist) return new OperationResult(false, $"Blob {key} does not exist.", HttpStatusCode.NotFound);
-            
-            var resp = await _client.SendRequest(HttpMethod.Put, key, payload,HttpStatusCode.OK);
 
-            string bucket = key.AbsolutePath.Split('/').First();
-
-
-            var highestLevelDomain = key.Host.Split('.').First();
-            if (highestLevelDomain != _region) bucket = highestLevelDomain;
-            bool isPub = await IsBucketPublic(bucket);
-
-            ReadAccess access = isPub ? ReadAccess.Public : ReadAccess.Private;
-
-            var acl = await SetBlobACL(key, access, 10);
-            if (!acl.Success) return acl;
-           
-
-            return resp.AppendUri(key);
+            return await PutBlob(payload, key);
         }
 
         public Task<OperationResult> UpdateBlob(Stream payload, Uri key)
@@ -137,10 +125,8 @@ namespace BucketClient.DigitalOcean
 
         public async Task<bool> ExistBlob(Uri key)
         {
-
             var resp = await _client.SendRequest(HttpMethod.Head, key);
             return resp.Success;
-
         }
 
         #endregion
@@ -151,30 +137,14 @@ namespace BucketClient.DigitalOcean
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}/?acl=";
 
             var acl = await _client.SendRequest(HttpMethod.Get, endpoint);
-            dynamic xml = acl.Message.DeserializeXML();
-            dynamic dy = xml.AccessControlPolicy.AccessControlList.Grant;
-
-            bool flag = false;
-            try
+            XmlSerializer ser = new XmlSerializer(typeof(ACL));
+            ACL accessControl;
+            using (TextReader reader = new StringReader(acl.Message))
             {
-                foreach (var o in dy)
-                {
-                    try
-                    {
-                        string uri = o.Grantee.URI;
-                        if (uri == "http://acs.amazonaws.com/groups/global/AllUsers")
-                        {
-                            flag = true;
-                        }
-                    }
-                    catch
-                    {
-
-                    }
-                }
+                accessControl = (ACL)ser.Deserialize(reader);
             }
-            catch { }
-            
+            bool flag = accessControl == null ? false : accessControl.AccessControlPolicy.AccessControlList.Any(s=>s.Grantee.URI == "http://acs.amazonaws.com/groups/global/AllUsers");
+           
             return flag;
         }
 
@@ -192,7 +162,7 @@ namespace BucketClient.DigitalOcean
                 {
                     try
                     {
-                        string uri = endpoint + content.Key;
+                        string uri = endpoint + content.Value;
                         uriList.Add(uri);
                     }
                     catch

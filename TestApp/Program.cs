@@ -23,7 +23,10 @@ namespace TestApp
                 case "digitalocean": goto case "do";
                 case "do":
                     return ServiceProvider.DigitalOcean;
-
+                case "azure": goto case "ms";
+                case "microsoft": goto case "ms";
+                case "ms":
+                    return ServiceProvider.Azure;
                 default: throw new InvalidOperationException("No such provider:" + provider);
             }
         }
@@ -32,10 +35,12 @@ namespace TestApp
     {
         private IBucketClient AWSBucket;
         private IBucketClient DOBucket;
-        public Factory(ICredential awsCred, ICredential doCred)
+        private IBucketClient AzureBucket;
+        public Factory(ICredential awsCred, ICredential doCred, ICredential azureCred)
         {
             AWSBucket = BucketClientFactory.CreateClient(ServiceProvider.AWS, awsCred);
             DOBucket = BucketClientFactory.CreateClient(ServiceProvider.DigitalOcean, doCred);
+            AzureBucket = BucketClientFactory.CreateClient(ServiceProvider.Azure, azureCred);
         }
 
 
@@ -48,7 +53,7 @@ namespace TestApp
                 case ServiceProvider.AWS:
                     return AWSBucket;
                 case ServiceProvider.Azure:
-                    throw new NotImplementedException();
+                    return AzureBucket;
                 case ServiceProvider.Google:
                     throw new NotImplementedException();
                 case ServiceProvider.DigitalOcean:
@@ -70,10 +75,13 @@ namespace TestApp
             dynamic config = LoadConfiguration("secrets.json");
             dynamic aws = config.aws;
             dynamic DO = config.DO;
+            dynamic azure = config.azure;
 
             ICredential awsCred = new AWSCredential(aws.id.ToString(), aws.key.ToString(), aws.region.ToString());
             ICredential doCred = new DigitalOceanCredential(DO.id.ToString(), DO.key.ToString(), DO.region.ToString());
-            Factory fac = new Factory(awsCred, doCred);
+            ICredential azureCred = new AzureCredential(azure.id.ToString(), azure.key.ToString());
+
+            Factory fac = new Factory(awsCred, doCred,azureCred);
 
             AsyncMain(args, fac).GetAwaiter().GetResult();
         }

@@ -1,4 +1,5 @@
 ﻿using BucketClient.AWS;
+using BucketClient.Azure;
 using BucketClient.DigitalOcean;
 using BucketClient.Library.Credentials;
 using System;
@@ -21,7 +22,9 @@ namespace BucketClient
                     AWSCredential aws = credential as AWSCredential;
                     return new AWSBucketClient(httpClient, aws.accessKeyID, aws.accessKeySecret, aws.region);
                 case ServiceProvider.Azure:
-                    throw new NotImplementedException();
+                    if (!(credential is AzureCredential)) throw new ArgumentException("Azure needs AzureCredential!");
+                    AzureCredential azure = credential as AzureCredential;
+                    return new AzureBucketClient(azure.AccountName, azure.Secret);
                 case ServiceProvider.Google:
                     throw new NotImplementedException();
                 case ServiceProvider.DigitalOcean:
