@@ -1,5 +1,6 @@
 ﻿using BucketClient.AWS;
 using BucketClient.DigitalOcean.Tools;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,7 +50,7 @@ namespace BucketClient.DigitalOcean
             foreach(Uri uri in uris)
             {
                 OperationResult acl = await SetBlobACL(uri, access, 10);
-                if (!acl.Success) return acl;
+                if (!acl.Success) return acl.AppendUri(uri);
             }
             return new OperationResult(results.All(s => s.Success), string.Join("\n\n", results.Select(s => s.Message)), HttpStatusCode.BadRequest);
 
@@ -61,9 +62,8 @@ namespace BucketClient.DigitalOcean
         }
         public async Task<bool> ExistBucket(string key)
         {
-            //var resp = await _client.SendRequest(HttpMethod.Head, $"https://{_region}.digitaloceanspaces.com/{key}");
-            //return resp.Success;
-            return await IsBucketPublic(key);
+            var resp = await _client.SendRequest(HttpMethod.Head, $"https://{_region}.digitaloceanspaces.com/{key}");
+            return resp.Success;
         }
         public async Task<IBucket> GetBucket(string key)
         {
@@ -103,7 +103,7 @@ namespace BucketClient.DigitalOcean
         {
             var resp = await _client.SendRequest(HttpMethod.Put, key, payload);
 
-            string bucket = key.AbsolutePath.Split('/').First();
+            string bucket = key.AbsolutePath.Split('/').Where(s => s.Trim() != "").First();
 
 
             var highestLevelDomain = key.Host.Split('.').First();
@@ -137,15 +137,19 @@ namespace BucketClient.DigitalOcean
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}/?acl=";
 
             var acl = await _client.SendRequest(HttpMethod.Get, endpoint);
-            XmlSerializer ser = new XmlSerializer(typeof(ACL));
-            ACL accessControl;
-            using (TextReader reader = new StringReader(acl.Message))
+
+            ACL accessControl = acl.Message.DeserializeXMLString<ACL>();
+            try
             {
-                accessControl = (ACL)ser.Deserialize(reader);
+                bool flag = accessControl == null ? false : accessControl.AccessControlPolicy.AccessControlList.Grant.Any(s => s.Grantee != null && s.Grantee.URI != null && s.Grantee.URI == "http://acs.amazonaws.com/groups/global/AllUsers");
+                return flag;
             }
-            bool flag = accessControl == null ? false : accessControl.AccessControlPolicy.AccessControlList.Any(s=>s.Grantee.URI == "http://acs.amazonaws.com/groups/global/AllUsers");
-           
-            return flag;
+            catch(NullReferenceException e)
+            {
+                return false;
+            }
+
+            
         }
 
         private async Task<OperationResult> GetAllObjectURI(string key)
@@ -153,32 +157,9 @@ namespace BucketClient.DigitalOcean
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}/";
             var resp = await _client.SendRequest(HttpMethod.Get, endpoint);
             if (!resp.Success) return resp;
-            dynamic xml = resp.Message.DeserializeXML();
-            try
-            {
-                dynamic contents = xml.ListBucketResult.Contents;
-                List<string> uriList = new List<string>();
-                foreach (var content in contents)
-                {
-                    try
-                    {
-                        string uri = endpoint + content.Value;
-                        uriList.Add(uri);
-                    }
-                    catch
-                    {
-
-                    }
-                }
-                return new OperationResult(true, string.Join("\n", uriList.ToArray()), HttpStatusCode.OK);
-            }
-            catch
-            {
-
-            }
-
-            return new OperationResult(true, "", HttpStatusCode.OK);
-
+            BucketContent content = resp.Message.DeserializeXMLString<BucketContent>();
+            var uris = string.Join("\n", content.ListBucketResult.Contents.Select(s => endpoint + s.Key));
+            return new OperationResult(true, uris, HttpStatusCode.OK);
         }
 
         internal async Task<OperationResult> SetBlobACL(Uri key, ReadAccess access, int max, int count = 0)
@@ -188,18 +169,17 @@ namespace BucketClient.DigitalOcean
             string endpoint = $"{key.ToString()}?acl=";
 
             OperationResult resp;
-            var acl = await _client.SendRequest(HttpMethod.Get, endpoint);
 
-
-            dynamic xml = acl.Message.DeserializeXML();
-
-            // Finally, we get the Group value and display it.
-            string ownerID = xml.AccessControlPolicy.Owner.ID;
+            //GETACL
+            var ACL = await _client.SendRequest(HttpMethod.Get, endpoint);
+            ACL acl = ACL.Message.DeserializeXMLString<ACL>();
+            string ownerID = "";
+            if (acl.AccessControlPolicy != null && acl.AccessControlPolicy.Owner != null) ownerID = acl.AccessControlPolicy.Owner.ID.ToString();
+            else return new OperationResult(false, "ACL XML Malformed?", HttpStatusCode.BadRequest);
 
             string aclData = DigitalOceanACLFactory.GenerateACL(access, ownerID);
             resp = await _client.SendRequest(HttpMethod.Put, endpoint, aclData);
-
-
+            
             if (resp.StatusCode == HttpStatusCode.Conflict)
             {
                 return await SetBlobACL(key, access, max, count);
@@ -216,15 +196,13 @@ namespace BucketClient.DigitalOcean
 
             OperationResult resp;
 
-            var acl = await _client.SendRequest(HttpMethod.Get, endpoint);
-
-
-            dynamic xml = acl.Message.DeserializeXML();
-
-            // Finally, we get the Group value and display it.
-            string ownerID = xml.AccessControlPolicy.Owner.ID;
-            Console.WriteLine(ownerID);
-
+            //GETACL
+            var ACL = await _client.SendRequest(HttpMethod.Get, endpoint);
+            ACL acl = ACL.Message.DeserializeXMLString<ACL>();
+            string ownerID = "";
+            if (acl.AccessControlPolicy != null && acl.AccessControlPolicy.Owner != null) ownerID = acl.AccessControlPolicy.Owner.ID.ToString();
+            else return new OperationResult(false, "ACL XML Malformed?", HttpStatusCode.BadRequest);
+            
             string aclData = DigitalOceanACLFactory.GenerateACL(access, ownerID);
             resp = await _client.SendRequest(HttpMethod.Put, endpoint, aclData);
 

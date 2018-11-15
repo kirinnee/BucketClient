@@ -1,15 +1,12 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
-using System.Linq;
-using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace BucketClient
 {
-   
+
     internal static class Utility
     {
         internal static byte[] ToByte(this Stream input)
@@ -20,6 +17,15 @@ namespace BucketClient
                 input.Close();
                 return ms.ToArray();
             }
+        }
+
+        internal static T DeserializeXMLString<T>(this string xmlData)
+        {
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(xmlData);
+            string json = JsonConvert.SerializeXmlNode(doc);
+            T t =  JsonConvert.DeserializeObject<T>(json);
+            return t;
         }
 
         internal static dynamic DeserializeXML(this string xmlData)

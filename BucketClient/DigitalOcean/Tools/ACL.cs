@@ -1,6 +1,6 @@
-﻿using System;
+﻿using BucketClient.Library;
+using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.Text;
 
 namespace BucketClient.DigitalOcean.Tools
 {
@@ -11,9 +11,17 @@ namespace BucketClient.DigitalOcean.Tools
 
     public class AccessControlPolicy
     {
-        public IEnumerable<Grant> AccessControlList;
+        public AccessControlList AccessControlList;
         public Owner Owner;
     }
+
+
+    public class AccessControlList
+    {
+        [JsonConverter(typeof(SingleValueArrayConverter<Grant>))]
+        public IEnumerable<Grant> Grant;
+    }
+
 
     public class Owner
     {
