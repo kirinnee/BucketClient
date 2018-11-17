@@ -1,9 +1,12 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.Shared.Protocol;
 using MimeDetective;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -96,6 +99,31 @@ namespace BucketClient.Azure
             return Task.FromResult(new AzureBucket(bucket, _client, this) as IBucket);
         }
 
+        public async Task<OperationResult> SetGETCors(string key, string[] cors)
+        {
+            try
+            {
+                CloudBlobContainer bucket = _client.GetContainerReference(key);
+                ServiceProperties properties = await _client.GetServicePropertiesAsync();
+                properties.Cors.CorsRules.Clear();
+                properties.Cors.CorsRules.Add(
+                            new CorsRule()
+                            {
+                                AllowedMethods = CorsHttpMethods.Get,
+                                AllowedOrigins = cors.ToList(),
+                                AllowedHeaders = new List<string>() { "*" }
+                            });
+                await _client.SetServicePropertiesAsync(properties);
+                return new OperationResult(true, "", HttpStatusCode.OK);
+            }
+            catch(Exception e)
+            {
+                return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
+            }
+            
+
+        }
+
         #endregion
 
         #region BLOB
@@ -136,7 +164,7 @@ namespace BucketClient.Azure
             {
                 return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
             }
-            
+
         }
 
         public Task<OperationResult> PutBlob(Stream payload, Uri key)
@@ -157,6 +185,8 @@ namespace BucketClient.Azure
         {
             return UpdateBlob(payload.ToByte(), key);
         }
+
+
 
         #endregion
     }

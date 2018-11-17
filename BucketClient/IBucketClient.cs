@@ -41,6 +41,13 @@ namespace BucketClient
         Task<OperationResult> SetReadPolicy(string key, ReadAccess access);
 
         /// <summary>
+        /// Set CORS for GET Request for the bucket
+        /// </summary>
+        /// <param name="cors">domain CORS pattern</param>
+        /// <returns></returns>
+        Task<OperationResult> SetGETCors(string key, string[] cors);
+
+        /// <summary>
         /// Returns bucket instance if exist. 
         /// Returns null if it does not exist.
         /// </summary>

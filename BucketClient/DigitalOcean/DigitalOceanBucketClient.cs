@@ -1,6 +1,5 @@
 ﻿using BucketClient.AWS;
 using BucketClient.DigitalOcean.Tools;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,8 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Serialization;
 
 namespace BucketClient.DigitalOcean
 {
@@ -38,21 +35,18 @@ namespace BucketClient.DigitalOcean
         }
         public async Task<OperationResult> SetReadPolicy(string key, ReadAccess access)
         {
-
-            Task<OperationResult> applyCORS = SetCORS(key, access, 10);
-            Task<OperationResult> applyACL = SetACL(key, access, 10);
-            OperationResult[] results = await Task.WhenAll(applyACL, applyCORS);
+            OperationResult aclResult = await SetACL(key, access, 10);
 
             OperationResult resp = await GetAllObjectURI(key);
-            if(!resp.Success) return resp;
+            if (!resp.Success) return resp;
 
             IEnumerable<Uri> uris = resp.Message.Split('\n').Where(s => s.Trim() != "").Select(s => new Uri(s));
-            foreach(Uri uri in uris)
+            foreach (Uri uri in uris)
             {
                 OperationResult acl = await SetBlobACL(uri, access, 10);
                 if (!acl.Success) return acl.AppendUri(uri);
             }
-            return new OperationResult(results.All(s => s.Success), string.Join("\n\n", results.Select(s => s.Message)), HttpStatusCode.BadRequest);
+            return aclResult;
 
         }
         public async Task<OperationResult> DeleteBucket(string key)
@@ -75,7 +69,10 @@ namespace BucketClient.DigitalOcean
         {
             return Task.FromResult(new DigitalOceanBucket(key, _client, _region, this) as IBucket);
         }
-
+        public Task<OperationResult> SetGETCors(string key, string[] cors)
+        {
+            return SetCORS(key, cors, 10);
+        }
         #endregion
 
         #region BLOB
@@ -129,6 +126,7 @@ namespace BucketClient.DigitalOcean
             return resp.Success;
         }
 
+
         #endregion
 
         #region ENCAPSULATED
@@ -144,12 +142,12 @@ namespace BucketClient.DigitalOcean
                 bool flag = accessControl == null ? false : accessControl.AccessControlPolicy.AccessControlList.Grant.Any(s => s.Grantee != null && s.Grantee.URI != null && s.Grantee.URI == "http://acs.amazonaws.com/groups/global/AllUsers");
                 return flag;
             }
-            catch(NullReferenceException e)
+            catch (NullReferenceException)
             {
                 return false;
             }
 
-            
+
         }
 
         private async Task<OperationResult> GetAllObjectURI(string key)
@@ -179,7 +177,7 @@ namespace BucketClient.DigitalOcean
 
             string aclData = DigitalOceanACLFactory.GenerateACL(access, ownerID);
             resp = await _client.SendRequest(HttpMethod.Put, endpoint, aclData);
-            
+
             if (resp.StatusCode == HttpStatusCode.Conflict)
             {
                 return await SetBlobACL(key, access, max, count);
@@ -202,7 +200,7 @@ namespace BucketClient.DigitalOcean
             string ownerID = "";
             if (acl.AccessControlPolicy != null && acl.AccessControlPolicy.Owner != null) ownerID = acl.AccessControlPolicy.Owner.ID.ToString();
             else return new OperationResult(false, "ACL XML Malformed?", HttpStatusCode.BadRequest);
-            
+
             string aclData = DigitalOceanACLFactory.GenerateACL(access, ownerID);
             resp = await _client.SendRequest(HttpMethod.Put, endpoint, aclData);
 
@@ -215,33 +213,28 @@ namespace BucketClient.DigitalOcean
 
         }
 
-        private async Task<OperationResult> SetCORS(string key, ReadAccess access, int max, int count = 0)
+        private async Task<OperationResult> SetCORS(string key, string[] CORS, int max, int count = 0)
         {
             if (++count == max) return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
 
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}/?cors=";
 
-            OperationResult resp;
-            if (access == ReadAccess.Public)
+            if(CORS.Length == 0)
             {
-                var corsContent = Utility.GenerateGetCORS(access);
-                resp = await _client.SendRequest(HttpMethod.Put, endpoint, corsContent);
-
+                return await _client.SendRequest(HttpMethod.Delete, endpoint, null, "text/plain", HttpStatusCode.NoContent);
             }
             else
             {
-                resp = await _client.SendRequest(HttpMethod.Delete, endpoint, null, "text/plain", HttpStatusCode.NoContent);
+                var corsContent = Utility.GenerateGetCORS(CORS);
+                return await _client.SendRequest(HttpMethod.Put, endpoint, corsContent);
             }
-            if (resp.StatusCode == HttpStatusCode.Conflict)
-            {
-                return await SetCORS(key, access, max, count);
-            }
-            return resp;
-
+            
+            
         }
 
+
         #endregion
-        
+
     }
 
 

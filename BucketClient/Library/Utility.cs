@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Dynamic;
 using System.IO;
+using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -50,20 +51,23 @@ namespace BucketClient
             return dyn;
         }
 
-        internal static string GenerateGetCORS(ReadAccess access)
+        internal static string GenerateGetCORS(string[] cors)
         {
-            if (access == ReadAccess.Public)
-                return @"<CORSConfiguration>
-                 <CORSRule>
-                   <AllowedOrigin>*</AllowedOrigin>
+            
+                return $@"<CORSConfiguration>
+                 {string.Join("\n",cors.Select(s=> SimpleCORS(s)))}
+                </CORSConfiguration>";
+            
+        }
+
+        private static string SimpleCORS(string cors)
+        {
+            return $@"<CORSRule>
+                   <AllowedOrigin>{cors}</AllowedOrigin>
                    <AllowedMethod>GET</AllowedMethod>
                    <AllowedHeader>*</AllowedHeader>
                    <MaxAgeSeconds>3000</MaxAgeSeconds>
-                 </CORSRule>
-                </CORSConfiguration>";
-            else
-                return @"<CORSConfiguration>
-                </CORSConfiguration>";
+                 </CORSRule>";
         }
 
     }

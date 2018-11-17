@@ -134,6 +134,10 @@ namespace TestApp
                                 var policyResp = await client.SetReadPolicy(args[2], args[3] == "public" ? ReadAccess.Public : ReadAccess.Private);
                                 Console.WriteLine(JsonConvert.SerializeObject(policyResp));
                                 break;
+                            case "cors":
+                                var corsResp = await client.SetGETCors(args[2], args.Length >3 ?args.Skip(3).ToArray() : new string[] { });
+                                Console.Write(JsonConvert.SerializeObject(corsResp));
+                                break;
                             default:
                                 Console.WriteLine("Unknown command!");
                                 break;

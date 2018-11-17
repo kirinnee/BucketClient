@@ -37,13 +37,9 @@ namespace BucketClient.AWS
             string endpoint = $"https://s3-{_region}.amazonaws.com/{key}";
             return await _client.SendRequest(HttpMethod.Put, endpoint, content);
         }
-        public async Task<OperationResult> SetReadPolicy(string key, ReadAccess access)
+        public Task<OperationResult> SetReadPolicy(string key, ReadAccess access)
         {
-            Task<OperationResult> applyCORS = SetCORS(key, access, 10);
-            Task<OperationResult> applyPolicy = SetPolicy(key, access, 10);
-
-            OperationResult[] results = await Task.WhenAll(applyPolicy, applyCORS);
-            return new OperationResult(results.All(s => s.Success), string.Join("\n\n", results.Select(s => s.Message)), HttpStatusCode.BadRequest);
+            return SetPolicy(key, access, 10);
         }
         public async Task<OperationResult> DeleteBucket(string key)
         {
@@ -64,6 +60,11 @@ namespace BucketClient.AWS
         public Task<IBucket> UnsafeGetBucket(string key)
         {
             return Task.FromResult(new AWSBucket(key, _client, _region, this) as IBucket);
+        }
+
+        public Task<OperationResult> SetGETCors(string key, string[] cors)
+        {
+            return SetCORS(key, cors, 10);
         }
 
         #endregion
@@ -129,24 +130,23 @@ namespace BucketClient.AWS
             }
             if (resp.StatusCode == HttpStatusCode.Conflict)
             {
-                return await SetCORS(key, access, max, count);
+                return await SetPolicy(key, access, max, count);
             }
             return resp;
 
         }
 
-        private async Task<OperationResult> SetCORS(string key, ReadAccess access, int max, int count = 0)
+        private async Task<OperationResult> SetCORS(string key, string[] cors, int max, int count = 0)
         {
             if (++count == max) return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
 
             string endpoint = $"https://s3-{_region}.amazonaws.com/{key}/?cors=";
 
             OperationResult resp;
-            if (access == ReadAccess.Public)
+            if (cors.Length > 0)
             {
-                var corsContent = Utility.GenerateGetCORS(access);
-                resp =  await _client.SendRequest(HttpMethod.Put, endpoint, corsContent);
-                
+                var corsContent = Utility.GenerateGetCORS(cors);
+                resp = await _client.SendRequest(HttpMethod.Put, endpoint, corsContent);
             }
             else
             {
@@ -154,7 +154,7 @@ namespace BucketClient.AWS
             }
             if(resp.StatusCode== HttpStatusCode.Conflict)
             {
-                return await SetCORS(key, access, max, count);
+                return await SetCORS(key, cors, max, count);
             }
             return resp;
 

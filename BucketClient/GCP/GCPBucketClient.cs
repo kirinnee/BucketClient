@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using static Google.Apis.Storage.v1.Data.Bucket;
 
 namespace BucketClient.GCP
 {
@@ -101,11 +102,35 @@ namespace BucketClient.GCP
             Bucket bucket = await _client.GetBucketAsync(key);
             return new GCPBucket(_client, bucket, this);
         }
-        #endregion
 
-        #region BLOB
 
-        public async Task<OperationResult> DeleteBlob(Uri key)
+        public async Task<OperationResult> SetGETCors(string key, string[] cors)
+        {
+            try
+            {
+                Bucket bucket = await _client.GetBucketAsync(key);
+                if (bucket.Cors == null) bucket.Cors = new List<CorsData>();
+                bucket.Cors.Clear();
+                bucket.Cors.Add(new CorsData()
+                {
+                    Method = new List<string>() { "GET" },
+                    Origin = cors.ToList(),
+                    ResponseHeader = new List<string>(){ "*" }
+                });
+                await _client.UpdateBucketAsync(bucket);
+                return new OperationResult(true, "", HttpStatusCode.OK);
+            }
+            catch (GoogleApiException e)
+            {
+                return new OperationResult(false, e.Message, (HttpStatusCode)e.Error.Code);
+            }
+        }
+
+            #endregion
+
+            #region BLOB
+
+            public async Task<OperationResult> DeleteBlob(Uri key)
         {
             try
             {
@@ -172,9 +197,7 @@ namespace BucketClient.GCP
                 payload.Close();
                 return new OperationResult(false, e.Message, (HttpStatusCode)e.Error.Code);
             }
-
-
-
+            
         }
         public Task<OperationResult> UpdateBlob(byte[] payload, Uri key)
         {
