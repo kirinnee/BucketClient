@@ -117,6 +117,12 @@ IBucketClient client = _bucketClient;
 OperationResult result = await client.SetReadPolicy("bucket-name", ReadAccess.Private);
 ```
 
+### Modifying GET Cors
+```cs
+IBucketClient client = _bucketClient;
+OperationResult result = await client.SetGETCors("bucket-name", new string[]{"*"}});
+```
+
 ### Checking if bucket exist
 Checks if the bucket exist
 ```cs
