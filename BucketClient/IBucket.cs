@@ -9,6 +9,13 @@ namespace BucketClient
     public interface IBucket
     {
 
+        /// <summary>
+        /// Returns the uri of the blob with a given key
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        Task<Uri> GetUri(string key);
+        
         #region EXIST
 
         /// <summary>

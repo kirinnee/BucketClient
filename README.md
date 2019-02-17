@@ -58,7 +58,7 @@ IBucketClient bucketClient = BucketClientFactory.CreateClient(CloudServiceProvid
 //Create a credential object 
 string accountName = "storage-account-name";
 string accessToken = "supersecret!";
-ICredential azureCred = new AzureCredential(accessId, accessSecret);
+ICredential azureCred = new AzureCredential(accountName, accessToken);
 
 //Use the BucketClientFactory to create a bucket Client
 IBucketClient bucketClient = BucketClientFactory.CreateClient(CloudServiceProvider.Azure,azureCred);
@@ -139,6 +139,16 @@ IBucket bucket = await client.GetBucket("bucket-name");
 
 
 ## Blob CRUD with IBucket
+
+### Getting Blob Uri
+Returns the URI for user to use. Will not fail if the file does not exist.
+
+```cs
+IBucket bucket = somebucket;
+
+//Get the uri for image.png within the bucket
+Uri uri = await bucket.GetUri("image.png");
+```
 
 ### Creating a Blob
 Creates a blob in the bucket. MimeType will be automatically detected. 

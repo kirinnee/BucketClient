@@ -13,7 +13,8 @@ namespace BucketClient.DigitalOcean
         private readonly string _key;
         private readonly DigitalOceanBucketClient _bucketClient;
 
-        internal DigitalOceanBucket(string key, DigitalOceanHttpClient client, string region, DigitalOceanBucketClient bucketClient)
+        internal DigitalOceanBucket(string key, DigitalOceanHttpClient client, string region,
+            DigitalOceanBucketClient bucketClient)
         {
             _region = region;
             _client = client;
@@ -28,7 +29,7 @@ namespace BucketClient.DigitalOcean
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{_key}/{key}";
             var resp = await _client.SendRequest(HttpMethod.Put, endpoint, payload);
 
-   
+
             bool isPub = await _bucketClient.IsBucketPublic(_key);
 
             ReadAccess access = isPub ? ReadAccess.Public : ReadAccess.Private;
@@ -52,6 +53,11 @@ namespace BucketClient.DigitalOcean
         public Task<OperationResult> DeleteBlob(Uri key)
         {
             return _bucketClient.DeleteBlob(key);
+        }
+
+        public Task<Uri> GetUri(string key)
+        {
+            return Task.FromResult(new Uri($"https://{_region}.digitaloceanspaces.com/{_key}/{key}"));
         }
 
         public Task<bool> ExistBlob(string key)

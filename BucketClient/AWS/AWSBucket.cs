@@ -45,6 +45,11 @@ namespace BucketClient.AWS
             return _bucketClient.DeleteBlob(key);
         }
 
+        public Task<Uri> GetUri(string key)
+        {
+            return Task.FromResult(new Uri($"https://s3-{_region}.amazonaws.com/{_key}/{key}"));
+        }
+
         public Task<bool> ExistBlob(string key)
         {
             return ExistBlob(new Uri($"https://s3-{_region}.amazonaws.com/{_key}/{key}"));

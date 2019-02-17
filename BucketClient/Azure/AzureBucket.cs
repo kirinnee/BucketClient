@@ -24,8 +24,8 @@ namespace BucketClient.Azure
 
         public async Task<OperationResult> CreateBlob(byte[] payload, string key)
         {
-            CloudBlockBlob blob = _bucket.GetBlockBlobReference(key);
-            bool exist = await ExistBlob(key);
+            var blob = _bucket.GetBlockBlobReference(key);
+            var exist = await ExistBlob(key);
             if (exist) return new OperationResult(false, "Blob already exist", HttpStatusCode.BadRequest);
             return await PutBlob(payload, key);
         }
@@ -39,21 +39,27 @@ namespace BucketClient.Azure
         {
             try
             {
-                CloudBlockBlob blob = _bucket.GetBlockBlobReference(key);
-                bool pass = await blob.DeleteIfExistsAsync();
-                if (pass) return new OperationResult(true, "", HttpStatusCode.OK);
-                return new OperationResult(false, "Failed to delete blob", HttpStatusCode.BadRequest);
+                var blob = _bucket.GetBlockBlobReference(key);
+                var pass = await blob.DeleteIfExistsAsync();
+                return pass
+                    ? new OperationResult(true, "", HttpStatusCode.OK)
+                    : new OperationResult(false, "Failed to delete blob", HttpStatusCode.BadRequest);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
             }
-            
         }
 
         public Task<OperationResult> DeleteBlob(Uri key)
         {
             return _bucketClient.DeleteBlob(key);
+        }
+
+        public Task<Uri> GetUri(string key)
+        {
+            var blob = _bucket.GetBlobReference(key);
+            return Task.FromResult(blob.Uri);
         }
 
         public Task<bool> ExistBlob(string key)
@@ -79,7 +85,7 @@ namespace BucketClient.Azure
         {
             try
             {
-                CloudBlockBlob blob = _bucket.GetBlockBlobReference(key);
+                var blob = _bucket.GetBlockBlobReference(key);
                 await blob.UploadFromByteArrayAsync(payload, 0, payload.Length);
                 blob.Properties.ContentType = payload.GetFileType().Mime;
                 await blob.SetPropertiesAsync();
@@ -98,7 +104,7 @@ namespace BucketClient.Azure
 
         public Task<OperationResult> PutBlob(Stream payload, string key)
         {
-            return PutBlob(payload.ToByte(),key);
+            return PutBlob(payload.ToByte(), key);
         }
 
         public Task<OperationResult> PutBlob(Stream payload, Uri key)
@@ -110,7 +116,7 @@ namespace BucketClient.Azure
         {
             bool exist = await ExistBlob(key);
             if (!exist) return new OperationResult(false, "Blob does not exist!", HttpStatusCode.NotFound);
-            return await PutBlob(payload,key);
+            return await PutBlob(payload, key);
         }
 
         public Task<OperationResult> UpdateBlob(byte[] payload, Uri key)

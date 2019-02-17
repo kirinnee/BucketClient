@@ -27,7 +27,7 @@ namespace BucketClient.GCP
             _bucketClient = bucketClient ?? throw new ArgumentNullException(nameof(bucketClient));
         }
 
-        public  Task<OperationResult> CreateBlob(byte[] payload, string key)
+        public Task<OperationResult> CreateBlob(byte[] payload, string key)
         {
             return CreateBlob(payload.ToStream(), key);
         }
@@ -48,6 +48,11 @@ namespace BucketClient.GCP
         public Task<OperationResult> DeleteBlob(Uri key)
         {
             return _bucketClient.DeleteBlob(key);
+        }
+
+        public Task<Uri> GetUri(string key)
+        {
+            return Task.FromResult(ToUri(key));
         }
 
         public Task<bool> ExistBlob(string key)
