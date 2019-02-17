@@ -9,6 +9,14 @@ namespace BucketClient
     public interface IBucketClient
     {
 
+
+        /// <summary>
+        /// Streams the blob into a byte array. Throws error if query fails.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        Task<byte[]> GetBlob(Uri key);
+
         #region BUCKET
 
         /// <summary>

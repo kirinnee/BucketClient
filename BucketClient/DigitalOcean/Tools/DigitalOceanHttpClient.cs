@@ -24,23 +24,23 @@ namespace BucketClient.DigitalOcean
             _region = region;
         }
 
-        public async Task<OperationResult> SendRequest(HttpMethod method, string endpoint, byte[] content, HttpStatusCode successDef = HttpStatusCode.OK, IDictionary<string, string> additionalHeaders = null)
+        public async Task<OperationResult> SendRequest(HttpMethod method, string endpoint, byte[] content,
+            HttpStatusCode successDef = HttpStatusCode.OK, IDictionary<string, string> additionalHeaders = null)
         {
             return await SendRequest(method, new Uri(endpoint), content, successDef);
         }
 
-        public async Task<OperationResult> SendRequest(HttpMethod method, Uri endpoint, byte[] content, HttpStatusCode successDef = HttpStatusCode.OK, IDictionary<string, string> additionalHeaders = null)
+        public async Task<OperationResult> SendRequest(HttpMethod method, Uri endpoint, byte[] content,
+            HttpStatusCode successDef = HttpStatusCode.OK, IDictionary<string, string> additionalHeaders = null)
         {
-            
-            
-            var c = content != null ? new ByteArrayContent(content): null;
-            string mime = content != null ? content.GetFileType().Mime: "application/xml";
+            var c = content != null ? new ByteArrayContent(content) : null;
+            string mime = content != null ? content.GetFileType().Mime : "application/xml";
             return await SendRequest(method, endpoint, c, mime, successDef);
         }
 
         public async Task<byte[]> GetObjectBinary(Uri key)
         {
-            HttpRequestMessage message = new HttpRequestMessage()
+            var message = new HttpRequestMessage()
             {
                 Method = HttpMethod.Get,
                 RequestUri = key,
@@ -48,19 +48,22 @@ namespace BucketClient.DigitalOcean
 
             message = await _signer.Sign(message, "s3", _region);
             var response = await _client.SendAsync(message);
-            if (response.StatusCode != HttpStatusCode.OK) return null;
+            response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsByteArrayAsync();
         }
 
-        public async Task<OperationResult> SendRequest(HttpMethod method, Uri endpoint, HttpContent content, string type = "application/xml", HttpStatusCode successDef = HttpStatusCode.OK, IDictionary<string, string> additionalHeaders = null)
+        private async Task<OperationResult> SendRequest(HttpMethod method, Uri endpoint, HttpContent content,
+            string type = "application/xml", HttpStatusCode successDef = HttpStatusCode.OK,
+            IDictionary<string, string> additionalHeaders = null)
         {
-            HttpRequestMessage message = new HttpRequestMessage()
+            var message = new HttpRequestMessage()
             {
                 Method = method,
                 RequestUri = endpoint,
             };
             message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(type));
-            if (additionalHeaders != null) additionalHeaders.Select(kv => message.Headers.TryAddWithoutValidation(kv.Key, kv.Value));
+            if (additionalHeaders != null)
+                additionalHeaders.Select(kv => message.Headers.TryAddWithoutValidation(kv.Key, kv.Value));
             if (content != null) message.Content = content;
             if (content != null) message.Content.Headers.ContentType = new MediaTypeWithQualityHeaderValue(type);
             message = await _signer.Sign(message, "s3", _region);
@@ -70,16 +73,19 @@ namespace BucketClient.DigitalOcean
             return new OperationResult(success, resp, response.StatusCode);
         }
 
-        public async Task<OperationResult> SendRequest(HttpMethod method, string endpoint, string content = null, string type = "text/plain", HttpStatusCode successDef = HttpStatusCode.OK, IDictionary<string, string> additionalHeaders = null)
+        public async Task<OperationResult> SendRequest(HttpMethod method, string endpoint, string content = null,
+            string type = "text/plain", HttpStatusCode successDef = HttpStatusCode.OK,
+            IDictionary<string, string> additionalHeaders = null)
         {
             return await SendRequest(method, new Uri(endpoint), content, type, successDef);
-
         }
-        public async Task<OperationResult> SendRequest(HttpMethod method, Uri endpoint, string content = null, string type = "text/plain", HttpStatusCode successDef = HttpStatusCode.OK, IDictionary<string, string> additionalHeaders = null)
+
+        public async Task<OperationResult> SendRequest(HttpMethod method, Uri endpoint, string content = null,
+            string type = "text/plain", HttpStatusCode successDef = HttpStatusCode.OK,
+            IDictionary<string, string> additionalHeaders = null)
         {
             var c = content == null ? null : new StringContent(content, Encoding.UTF8, type);
             return await SendRequest(method, endpoint, c, type, successDef);
         }
-
     }
 }

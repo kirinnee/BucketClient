@@ -226,7 +226,29 @@ bool exist1 = await bucket.ExistBlob("image.png");
 bool exist2 = await bucket.ExistBlob("https://aws.com/bucket/img.png");
 ```
 
+### Download a blob as byte[]
+Do note this throws error when it fails, it does not check or return a OperationResult
+```cs
+IBucket bucket = somebucket;
+
+//Downloads blob using specific id
+byte[] blob1 = await bucket.GetBlob("image.png"); 
+
+//Downloads blob using full URI
+byte[] blob2 = await bucket.GetBlob("https://aws.com/bucket/img.png");
+```
+
 ## Blob CRUD With IBucketClient
+
+### Download a blob as byte[]
+Do note that this throws exception when it fails. It does not check nor return a OperationResult object.
+
+```cs
+IBucketClient client = _bucketClient;
+
+//Download using full URI
+byte[] blob = await client.GetBlob("https://aws.com/bucket/img.png");
+```
 
 ### Updating a Blob
 Updates an exist blob in the bucket. MimeType will be automatically updated too.

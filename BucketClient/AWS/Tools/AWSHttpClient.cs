@@ -37,7 +37,7 @@ namespace BucketClient.AWS
             return await SendRequest(method, endpoint, c, mime, successDef);
         }
 
-        private async Task<HttpResponseMessage> Ping(HttpMethod method, Uri endpoint, HttpContent content,
+        public async Task<HttpResponseMessage> Ping(HttpMethod method, Uri endpoint, HttpContent content,
             string type = "text/plain")
         {
             var message = new HttpRequestMessage()

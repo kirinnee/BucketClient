@@ -15,6 +15,16 @@ namespace BucketClient.GCP
         private readonly Bucket _bucket;
         private readonly IBucketClient _bucketClient;
 
+        public Task<byte[]> GetBlob(string key)
+        {
+            return GetBlob(ToUri(key));
+        }
+
+        public Task<byte[]> GetBlob(Uri key)
+        {
+            return _bucketClient.GetBlob(key);
+        }
+
         private Uri ToUri(string key)
         {
             return new Uri($"https://storage.googleapis.com/{_bucket.Name}/{key}");
@@ -34,8 +44,8 @@ namespace BucketClient.GCP
 
         public async Task<OperationResult> CreateBlob(Stream payload, string key)
         {
-            Uri endpoint = ToUri(key);
-            bool exist = await _bucketClient.ExistBlob(endpoint);
+            var endpoint = ToUri(key);
+            var exist = await _bucketClient.ExistBlob(endpoint);
             if (exist) return new OperationResult(false, "Blob already exist", HttpStatusCode.BadRequest);
             return await _bucketClient.PutBlob(payload, endpoint);
         }
@@ -54,6 +64,7 @@ namespace BucketClient.GCP
         {
             return Task.FromResult(ToUri(key));
         }
+
 
         public Task<bool> ExistBlob(string key)
         {

@@ -5,17 +5,31 @@ using System.Threading.Tasks;
 
 namespace BucketClient
 {
-    
     public interface IBucket
     {
-
         /// <summary>
         /// Returns the uri of the blob with a given key
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
         Task<Uri> GetUri(string key);
-        
+
+
+        /// <summary>
+        /// Streams the blob into byte array. Throws exception if query fails
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        Task<byte[]> GetBlob(string key);
+
+
+        /// <summary>
+        /// Streams the blob into byte array. Throws exception if query fails
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        Task<byte[]> GetBlob(Uri key);
+
         #region EXIST
 
         /// <summary>
@@ -24,6 +38,7 @@ namespace BucketClient
         /// <param name="key">ID of the blob</param>
         /// <returns></returns>
         Task<bool> ExistBlob(string key);
+
         /// <summary>
         /// Check if blob exist
         /// </summary>
@@ -62,6 +77,7 @@ namespace BucketClient
         /// <param name="key">ID of the blob</param>
         /// <returns></returns>
         Task<OperationResult> UpdateBlob(byte[] payload, string key);
+
         /// <summary>
         /// Updates a blob, using byte array returns 404 if it doesn't exist
         /// </summary>
@@ -78,6 +94,7 @@ namespace BucketClient
         /// <param name="key">ID of the blob</param>
         /// <returns></returns>
         Task<OperationResult> UpdateBlob(Stream payload, string key);
+
         /// <summary>
         /// Updates a blob, using a stream
         /// Returns 404 if it doesn't exist
@@ -98,6 +115,7 @@ namespace BucketClient
         /// <param name="key">ID of the blob</param>
         /// <returns></returns>
         Task<OperationResult> PutBlob(byte[] payload, string key);
+
         /// <summary>
         /// Puts a blob, whether it exist or not
         /// </summary>
@@ -113,6 +131,7 @@ namespace BucketClient
         /// <param name="key">ID of the blob</param>
         /// <returns></returns>
         Task<OperationResult> PutBlob(Stream payload, string key);
+
         /// <summary>
         /// Puts a blob, whether it exist or not
         /// </summary>

@@ -21,6 +21,17 @@ namespace BucketClient.AWS
             _bucketClient = bucketClient;
         }
 
+
+        public async Task<byte[]> GetBlob(string key)
+        {
+            return await GetBlob(await GetUri(key));
+        }
+
+        public Task<byte[]> GetBlob(Uri key)
+        {
+            return _bucketClient.GetBlob(key);
+        }
+
         public async Task<OperationResult> CreateBlob(byte[] payload, string key)
         {
             bool exist = await ExistBlob(key);
@@ -49,6 +60,7 @@ namespace BucketClient.AWS
         {
             return Task.FromResult(new Uri($"https://s3-{_region}.amazonaws.com/{_key}/{key}"));
         }
+
 
         public Task<bool> ExistBlob(string key)
         {

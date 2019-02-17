@@ -22,6 +22,16 @@ namespace BucketClient.Azure
             _bucketClient = bucketClient;
         }
 
+        public async Task<byte[]> GetBlob(string key)
+        {
+            return await GetBlob(await GetUri(key));
+        }
+
+        public Task<byte[]> GetBlob(Uri key)
+        {
+            return _bucketClient.GetBlob(key);
+        }
+
         public async Task<OperationResult> CreateBlob(byte[] payload, string key)
         {
             var blob = _bucket.GetBlockBlobReference(key);
@@ -61,6 +71,7 @@ namespace BucketClient.Azure
             var blob = _bucket.GetBlobReference(key);
             return Task.FromResult(blob.Uri);
         }
+
 
         public Task<bool> ExistBlob(string key)
         {

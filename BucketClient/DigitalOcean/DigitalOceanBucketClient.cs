@@ -10,20 +10,23 @@ using System.Threading.Tasks;
 
 namespace BucketClient.DigitalOcean
 {
-
     internal class DigitalOceanBucketClient : IBucketClient
     {
         private readonly string _region;
         private readonly DigitalOceanHttpClient _client;
 
 
-
         public DigitalOceanBucketClient(HttpClient client, string accessKeyID, string accessKeySecret, string region)
         {
-
             var signer = new AWS4RequestSigner(accessKeyID, accessKeySecret);
             _client = new DigitalOceanHttpClient(client, signer, region);
             _region = region;
+        }
+
+
+        public Task<byte[]> GetBlob(Uri key)
+        {
+            return _client.GetObjectBinary(key);
         }
 
         #region BUCKET
@@ -33,6 +36,7 @@ namespace BucketClient.DigitalOcean
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}";
             return await _client.SendRequest(HttpMethod.Put, endpoint);
         }
+
         public async Task<OperationResult> SetReadPolicy(string key, ReadAccess access)
         {
             OperationResult aclResult = await SetACL(key, access, 10);
@@ -46,37 +50,43 @@ namespace BucketClient.DigitalOcean
                 OperationResult acl = await SetBlobACL(uri, access, 10);
                 if (!acl.Success) return acl.AppendUri(uri);
             }
-            return aclResult;
 
+            return aclResult;
         }
+
         public async Task<OperationResult> DeleteBucket(string key)
         {
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}";
             return await _client.SendRequest(HttpMethod.Delete, endpoint, null, HttpStatusCode.NoContent);
         }
+
+
         public async Task<bool> ExistBucket(string key)
         {
             var resp = await _client.SendRequest(HttpMethod.Head, $"https://{_region}.digitaloceanspaces.com/{key}");
             return resp.Success;
         }
+
         public async Task<IBucket> GetBucket(string key)
         {
             bool exist = await ExistBucket(key);
             if (!exist) return null;
             return await UnsafeGetBucket(key);
         }
+
         public Task<IBucket> UnsafeGetBucket(string key)
         {
             return Task.FromResult(new DigitalOceanBucket(key, _client, _region, this) as IBucket);
         }
+
         public Task<OperationResult> SetGETCors(string key, string[] cors)
         {
             return SetCORS(key, cors, 10);
         }
+
         #endregion
 
         #region BLOB
-
 
         public async Task<OperationResult> DeleteBlob(Uri key)
         {
@@ -126,10 +136,10 @@ namespace BucketClient.DigitalOcean
             return resp.Success;
         }
 
-
         #endregion
 
         #region ENCAPSULATED
+
         internal async Task<bool> IsBucketPublic(string key)
         {
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}/?acl=";
@@ -139,15 +149,17 @@ namespace BucketClient.DigitalOcean
             ACL accessControl = acl.Message.DeserializeXMLString<ACL>();
             try
             {
-                bool flag = accessControl == null ? false : accessControl.AccessControlPolicy.AccessControlList.Grant.Any(s => s.Grantee != null && s.Grantee.URI != null && s.Grantee.URI == "http://acs.amazonaws.com/groups/global/AllUsers");
+                bool flag = accessControl == null
+                    ? false
+                    : accessControl.AccessControlPolicy.AccessControlList.Grant.Any(s =>
+                        s.Grantee != null && s.Grantee.URI != null &&
+                        s.Grantee.URI == "http://acs.amazonaws.com/groups/global/AllUsers");
                 return flag;
             }
             catch (NullReferenceException)
             {
                 return false;
             }
-
-
         }
 
         private async Task<OperationResult> GetAllObjectURI(string key)
@@ -162,7 +174,8 @@ namespace BucketClient.DigitalOcean
 
         internal async Task<OperationResult> SetBlobACL(Uri key, ReadAccess access, int max, int count = 0)
         {
-            if (++count == max) return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
+            if (++count == max)
+                return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
 
             string endpoint = $"{key.ToString()}?acl=";
 
@@ -172,7 +185,8 @@ namespace BucketClient.DigitalOcean
             var ACL = await _client.SendRequest(HttpMethod.Get, endpoint);
             ACL acl = ACL.Message.DeserializeXMLString<ACL>();
             string ownerID = "";
-            if (acl.AccessControlPolicy != null && acl.AccessControlPolicy.Owner != null) ownerID = acl.AccessControlPolicy.Owner.ID.ToString();
+            if (acl.AccessControlPolicy != null && acl.AccessControlPolicy.Owner != null)
+                ownerID = acl.AccessControlPolicy.Owner.ID.ToString();
             else return new OperationResult(false, "ACL XML Malformed?", HttpStatusCode.BadRequest);
 
             string aclData = DigitalOceanACLFactory.GenerateACL(access, ownerID);
@@ -182,13 +196,14 @@ namespace BucketClient.DigitalOcean
             {
                 return await SetBlobACL(key, access, max, count);
             }
-            return resp;
 
+            return resp;
         }
 
         private async Task<OperationResult> SetACL(string key, ReadAccess access, int max, int count = 0)
         {
-            if (++count == max) return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
+            if (++count == max)
+                return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
 
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}/?acl=";
 
@@ -198,7 +213,8 @@ namespace BucketClient.DigitalOcean
             var ACL = await _client.SendRequest(HttpMethod.Get, endpoint);
             ACL acl = ACL.Message.DeserializeXMLString<ACL>();
             string ownerID = "";
-            if (acl.AccessControlPolicy != null && acl.AccessControlPolicy.Owner != null) ownerID = acl.AccessControlPolicy.Owner.ID.ToString();
+            if (acl.AccessControlPolicy != null && acl.AccessControlPolicy.Owner != null)
+                ownerID = acl.AccessControlPolicy.Owner.ID.ToString();
             else return new OperationResult(false, "ACL XML Malformed?", HttpStatusCode.BadRequest);
 
             string aclData = DigitalOceanACLFactory.GenerateACL(access, ownerID);
@@ -209,33 +225,29 @@ namespace BucketClient.DigitalOcean
             {
                 return await SetACL(key, access, max, count);
             }
-            return resp;
 
+            return resp;
         }
 
         private async Task<OperationResult> SetCORS(string key, string[] CORS, int max, int count = 0)
         {
-            if (++count == max) return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
+            if (++count == max)
+                return new OperationResult(false, "Failed too many times due to conflict", HttpStatusCode.BadRequest);
 
             string endpoint = $"https://{_region}.digitaloceanspaces.com/{key}/?cors=";
 
-            if(CORS.Length == 0)
+            if (CORS.Length == 0)
             {
-                return await _client.SendRequest(HttpMethod.Delete, endpoint, null, "text/plain", HttpStatusCode.NoContent);
+                return await _client.SendRequest(HttpMethod.Delete, endpoint, null, "text/plain",
+                    HttpStatusCode.NoContent);
             }
             else
             {
                 var corsContent = Utility.GenerateGetCORS(CORS);
                 return await _client.SendRequest(HttpMethod.Put, endpoint, corsContent);
             }
-            
-            
         }
 
-
         #endregion
-
     }
-
-
 }

@@ -21,7 +21,16 @@ namespace BucketClient.Azure
             var credential = new StorageCredentials(accountName, secret);
             var storage = new CloudStorageAccount(credential, true);
             _client = storage.CreateCloudBlobClient();
+        }
 
+        public async Task<byte[]> GetBlob(Uri key)
+        {
+            var blob = await _client.GetBlobReferenceFromServerAsync(key);
+            using (var stream = new MemoryStream())
+            {
+                await blob.DownloadToStreamAsync(stream);
+                return stream.ToArray();
+            }
         }
 
         #region BUCKET
@@ -34,14 +43,12 @@ namespace BucketClient.Azure
                 bool success = await container.CreateIfNotExistsAsync();
                 if (!success) return new OperationResult(false, "Failed to create bucket", HttpStatusCode.BadRequest);
                 return new OperationResult(true, "", HttpStatusCode.OK);
-
             }
             catch (Exception e)
             {
                 return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
             }
         }
-
 
 
         public async Task<OperationResult> DeleteBucket(string key)
@@ -52,13 +59,13 @@ namespace BucketClient.Azure
                 bool success = await container.DeleteIfExistsAsync();
                 if (!success) return new OperationResult(false, "Failed to delete bucket", HttpStatusCode.BadRequest);
                 return new OperationResult(true, "", HttpStatusCode.OK);
-
             }
             catch (Exception e)
             {
                 return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
             }
         }
+
 
         public Task<bool> ExistBucket(string key)
         {
@@ -72,7 +79,6 @@ namespace BucketClient.Azure
             if (!exist) return null;
             CloudBlobContainer bucket = _client.GetContainerReference(key);
             return new AzureBucket(bucket, _client, this);
-
         }
 
         public async Task<OperationResult> SetReadPolicy(string key, ReadAccess access)
@@ -83,7 +89,9 @@ namespace BucketClient.Azure
                 if (!exist) return new OperationResult(false, "Bucket does not exist", HttpStatusCode.NotFound);
                 CloudBlobContainer bucket = _client.GetContainerReference(key);
                 BlobContainerPermissions perm = await bucket.GetPermissionsAsync();
-                perm.PublicAccess = access == ReadAccess.Public ? BlobContainerPublicAccessType.Blob : BlobContainerPublicAccessType.Off;
+                perm.PublicAccess = access == ReadAccess.Public
+                    ? BlobContainerPublicAccessType.Blob
+                    : BlobContainerPublicAccessType.Off;
                 await bucket.SetPermissionsAsync(perm);
                 return new OperationResult(true, "Permission is now " + access.ToString(), HttpStatusCode.OK);
             }
@@ -107,21 +115,19 @@ namespace BucketClient.Azure
                 ServiceProperties properties = await _client.GetServicePropertiesAsync();
                 properties.Cors.CorsRules.Clear();
                 properties.Cors.CorsRules.Add(
-                            new CorsRule()
-                            {
-                                AllowedMethods = CorsHttpMethods.Get,
-                                AllowedOrigins = cors.ToList(),
-                                AllowedHeaders = new List<string>() { "*" }
-                            });
+                    new CorsRule()
+                    {
+                        AllowedMethods = CorsHttpMethods.Get,
+                        AllowedOrigins = cors.ToList(),
+                        AllowedHeaders = new List<string>() {"*"}
+                    });
                 await _client.SetServicePropertiesAsync(properties);
                 return new OperationResult(true, "", HttpStatusCode.OK);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
             }
-            
-
         }
 
         #endregion
@@ -141,7 +147,6 @@ namespace BucketClient.Azure
             {
                 return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
             }
-
         }
 
         public async Task<bool> ExistBlob(Uri key)
@@ -164,14 +169,12 @@ namespace BucketClient.Azure
             {
                 return new OperationResult(false, e.Message, HttpStatusCode.BadRequest);
             }
-
         }
 
         public Task<OperationResult> PutBlob(Stream payload, Uri key)
         {
             return PutBlob(payload.ToByte(), key);
         }
-
 
 
         public async Task<OperationResult> UpdateBlob(byte[] payload, Uri key)
@@ -185,8 +188,6 @@ namespace BucketClient.Azure
         {
             return UpdateBlob(payload.ToByte(), key);
         }
-
-
 
         #endregion
     }
